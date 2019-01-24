@@ -1,0 +1,5 @@
+#define FOO(a,b) ((a)+(b))
+int f(void)
+{
+  return FOO(3,7);
+}
