@@ -4,8 +4,11 @@ HCPP_OUT1 = $(SRCS:.c=.i)
 HCPP_OUT2 = $(SRCS:.c=.j)
 HCC1_OUT2 = $(SRCS:.c=.x)
 
-CPP_FLAG = -Id:/cygwin64/usr/include \
--Id:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.3.0/include \
+HCPP = hcpp.exe
+INCLUDE1 = /usr/include
+INCLUDE2 = /usr/lib/gcc/x86_64-pc-cygwin/7.3.0/include
+HCPP_FLAG = -I$(INCLUDE1) \
+-I$(INCLUDE2) \
 -D__CYGWIN__ -D__WCHAR_TYPE__="unsigned short int" \
 -D__declspec\(a\)= -D__cdecl= -D__inline__=inline -D__extension__= \
 -D__attribute__\(a\)= -D__builtin_va_list='char*' \
@@ -13,38 +16,44 @@ CPP_FLAG = -Id:/cygwin64/usr/include \
 -D__x86_64__ \
 -W 0 -H
 
-
-
-HCC1_OPT1 = --generator d:/home/khasegawa/lang/bin/intel.dll \
+HCC1 = hcc1.exe
+INTEL_DLL = d:/home/khasegawa/lang/bin/intel.dll
+HCC1_OPT1 = --lang eng --generator $(INTEL_DLL) \
 --generator-option \( --debug \)
 
-HCC1_OPT2 = --generator d:/home/khasegawa/lang/bin/docgen.dll
+DOCGEN_DLL = d:/home/khasegawa/lang/bin/docgen.dll
+HCC1_OPT2 = --lang eng --generator $(DOCGEN_DLL)
 
-PROG = hcpp.hcc1.exe
-$(PROG):$(HCC1_OUT1)
-	gcc -g -o $@ $(HCC1_OUT1)
-
-$(PROG):$(HCPP_OUT1)
-
-DOCLINK_OPT = --exclude-dir d:/cygwin64/usr/include \
---exclude-dir d:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.3.0/include \
---output-flow
-
+DVI = doc.dvi
 DOC = hcpp.tex
+
+$(DVI):$(DOC)
+	platex doc.tex
 
 $(DOC):$(HCPP_OUT2) $(HCC1_OUT2)
 	doclink.exe -o $@ $(HCPP_OUT2) $(HCC1_OUT2) $(DOCLINK_OPT)
 
+PROG1 = hcpp.hcc1.gcc.exe
+$(PROG1):$(HCC1_OUT1)
+	gcc -g -o $@ $(HCC1_OUT1)
+
+$(PROG1):$(HCPP_OUT1)
+
+DOCLINK_OPT = --exclude-dir $(INCLUDE1) --exclude-dir $(INCLUDE2)
+
 $(DOC):$(HCPP_OUT1)
 
 %.i : %.c
-	hcpp.exe -o $@ -L $(basename $@).j $< $(CPP_FLAG)
+	$(HCPP) -o $@ -L $(basename $@).j $< $(HCPP_FLAG)
+
+%.j : %.c
+	$(HCPP) -o $(basename $@).i -L $@ $< $(HCPP_FLAG)
 
 %.s : %.i
-	hcc1.exe -o $@ $< $(HCC1_OPT1)
+	$(HCC1) -o $@ $< $(HCC1_OPT1)
 
 %.x : %.i
-	hcc1.exe -o $@ $< $(HCC1_OPT2)
+	$(HCC1) -o $@ $< $(HCC1_OPT2)
 
 RM = rm -r -f
 
