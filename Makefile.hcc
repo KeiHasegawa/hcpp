@@ -1,13 +1,20 @@
 SRCS = $(wildcard *.c)
+
 HCC1_OUT1 = $(SRCS:.c=.s)
+HCC1_OUT2 = $(SRCS:.c=.x)
+HCC1_OUT3 = $(SRCS:.c=.asm)
+
 HCPP_OUT1 = $(SRCS:.c=.i)
 HCPP_OUT2 = $(SRCS:.c=.j)
-HCC1_OUT2 = $(SRCS:.c=.x)
+HCPP_OUT3 = $(SRCS:.c=.k)
+HCPP_OUT4 = $(SRCS:.c=.n)
+HCPP_OUT5 = $(SRCS:.c=.m)
+
 
 HCPP = hcpp.exe
-INCLUDE1 = /usr/include
-INCLUDE2 = /usr/lib/gcc/x86_64-pc-cygwin/7.3.0/include
-HCPP_FLAG = -I$(INCLUDE1) \
+INCLUDE1 = d:/cygwin64/usr/include
+INCLUDE2 = d:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.3.0/include
+HCPP_FLAG1 = -I$(INCLUDE1) \
 -I$(INCLUDE2) \
 -D__CYGWIN__ -D__WCHAR_TYPE__="unsigned short int" \
 -D__declspec\(a\)= -D__cdecl= -D__inline__=inline -D__extension__= \
@@ -16,19 +23,29 @@ HCPP_FLAG = -I$(INCLUDE1) \
 -D__x86_64__ \
 -W 0 -H
 
-HCC1 = hcc1.exe
-INTEL_DLL = d:/home/khasegawa/lang/bin/intel.dll
+HCPP_FLAG2 = -D_MSC_VER=1600 -D_M_X64 \
+-D__int64='long long' -D__cdecl= -D__pragma='\#pragma' -D_Bool=int \
+-D__declspec\(a\)= -D__inline=inline \
+-Dmain=_test_main -D_NO_CRT_STDIO_INLINE -W 0 -H
+
+HCC1 = $(LANG_PROJECT_ROOT)/20_hcc1/src/hcc1.exe
+INTEL_DLL = $(LANG_PROJECT_ROOT)/bin/intel.dll
 HCC1_OPT1 = --lang eng --generator $(INTEL_DLL) \
 --generator-option \( --debug \)
 
-DOCGEN_DLL = d:/home/khasegawa/lang/bin/docgen.dll
+DOCGEN_DLL = $(LANG_PROJECT_ROOT)/bin/docgen.dll
 HCC1_OPT2 = --lang eng --generator $(DOCGEN_DLL)
+
+HCC1_OPT3 = --lang eng --generator $(INTEL_DLL) \
+--generator-option \( --debug --ms \)
 
 DVI = doc.dvi
 DOC = hcpp.tex
 
 $(DVI):$(DOC)
 	platex doc.tex
+
+DOCLINK_OPT = --exclude-dir $(INCLUDE1) --exclude-dir $(INCLUDE2)
 
 $(DOC):$(HCPP_OUT2) $(HCC1_OUT2)
 	doclink.exe -o $@ $(HCPP_OUT2) $(HCC1_OUT2) $(DOCLINK_OPT)
@@ -39,15 +56,19 @@ $(PROG1):$(HCC1_OUT1)
 
 $(PROG1):$(HCPP_OUT1)
 
-DOCLINK_OPT = --exclude-dir $(INCLUDE1) --exclude-dir $(INCLUDE2)
+PROG2 = hcpp.hcc1.vs.exe
+$(PROG2):$(HCC1_OUT3)
+	cd for_build_hcc1_vs; MSBuild.exe
+
+$(PROG2):$(HCC1_OUT3) $(HCPP_OUT3) $(HCPP_OUT4) $(HCPP_OUT5)
 
 $(DOC):$(HCPP_OUT1)
 
 %.i : %.c
-	$(HCPP) -o $@ -L $(basename $@).j $< $(HCPP_FLAG)
+	$(HCPP) -o $@ -L $(basename $@).j $< $(HCPP_FLAG1)
 
 %.j : %.c
-	$(HCPP) -o $(basename $@).i -L $@ $< $(HCPP_FLAG)
+	$(HCPP) -o $(basename $@).i -L $@ $< $(HCPP_FLAG1)
 
 %.s : %.i
 	$(HCC1) -o $@ $< $(HCC1_OPT1)
@@ -55,10 +76,23 @@ $(DOC):$(HCPP_OUT1)
 %.x : %.i
 	$(HCC1) -o $@ $< $(HCC1_OPT2)
 
+%.k : %.c
+	$(HCPP) -o $@ $< -L $(basename $@).n $(HCPP_FLAG2)
+
+%.n : %.c
+	$(HCPP) -o $(basename $@) $< -L $@ $(HCPP_FLAG2)
+
+%.m : %.k
+	vs_header_conv.pl $< > $@    
+
+%.asm : %.m
+	$(HCC1) -o $@ $< $(HCC1_OPT3)
+
 RM = rm -r -f
 
 clean:
-	$(RM) *.i *.j *.s *.x *~ *.exe *.stackdump
+	$(RM) *.i *.j *.k *.n *.m *.o *.s *.x *~ *.asm *.exe *.stackdump
 	$(RM) .vs x64 Debug Release
+	$(RM) for_build_hcc1_vs/.vs for_build_hcc1_vs/x64
 	$(RM) $(DOC)
 	$(RM) *.dvi *.log *.aux
