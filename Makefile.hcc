@@ -12,15 +12,11 @@ HCPP_OUT5 = $(SRCS:.c=.m)
 
 
 HCPP = hcpp.exe
-INCLUDE1 = d:/cygwin64/usr/include
-INCLUDE2 = d:/cygwin64/lib/gcc/x86_64-pc-cygwin/7.3.0/include
+INCLUDE1 = /usr/include
+INCLUDE2 = /usr/local/lib/gcc/i686-pc-linux-gnu/6.4.0/include
 HCPP_FLAG1 = -I$(INCLUDE1) \
 -I$(INCLUDE2) \
--D__CYGWIN__ -D__WCHAR_TYPE__="unsigned short int" \
--D__declspec\(a\)= -D__cdecl= -D__inline__=inline -D__extension__= \
--D__attribute__\(a\)= -D__builtin_va_list='char*' \
--D__builtin_stdarg_start=__builtin_va_start -D__asm__\(a\)= \
--D__x86_64__ \
+-U__FreeBSD__ -Dlinux -D__WCHAR_TYPE__="long" -D__builtin_va_list='char*' \
 -W 0 -H
 
 HCPP_FLAG2 = -D_MSC_VER=1600 -D_M_X64 \
