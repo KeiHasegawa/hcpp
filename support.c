@@ -1806,6 +1806,20 @@ end_line:
     return  infile->buffer;
 }
 
+static inline int jis_start(const char* sp)
+{
+  if (sp[0] == 0x24)
+    return sp[1] == 0x40 || sp[1] == 0x42;
+  if (sp[0] == 0x28)
+    return sp[1] == 0x49 || sp[1] == 0x4a;
+  return 0;
+}
+
+static inline int jis_end(const char* sp)
+{
+  return sp[0] == 0x28 && sp[1] == 0x42;
+}
+
 static char *   read_a_comment(
     char *      sp,                         /* Source               */
     size_t *    sizp                        /* Size of the comment  */
@@ -1817,6 +1831,7 @@ static char *   read_a_comment(
     int         c;
     char *      saved_sp = 0;
     int         cat_line = 0;       /* Number of catenated lines    */
+    int         jis_state = 0;
 
     if (keep_spaces) {
         saved_sp = sp - 2;          /* '-2' for beginning / and *   */
@@ -1840,6 +1855,8 @@ static char *   read_a_comment(
                 mcpp_fputc( c, OUT);
                                             /* Fall into * stuff    */
         case '*':
+            if (jis_state)
+                break;
             if ((c = *sp++) != '/')         /* If comment doesn't   */
                 continue;                   /*   end, look at next. */
             if (keep_comments) {            /* Put out comment      */
@@ -1886,6 +1903,28 @@ static char *   read_a_comment(
                 /* Never happen, because at_eof() supplement closing*/
             wrong_line = TRUE;      /* We'll need a #line later     */
             break;
+	case 0x1b:
+	  if (jis_state == 0 && jis_start(sp))
+	    jis_state = 1;
+	  else if (jis_state == 3 && jis_end(sp))
+	    jis_state = 4;
+	  break;
+	case 0x24:
+	  if (jis_state == 1)
+	    jis_state = 2;
+	  break;
+	case 0x42: case 0x49: case 0x4a:
+	  if (jis_state == 2)
+	    jis_state = 3;
+	  else if (jis_state == 5)
+	    jis_state = 0;
+	  break;
+	case 0x28:
+	  if (jis_state == 4)
+	    jis_state = 5;
+	  else if (jis_state == 1)
+	    jis_state = 2;
+	  break;
         default:                            /* Anything else is     */
             break;                          /*   just a character   */
         }                                   /* End switch           */
