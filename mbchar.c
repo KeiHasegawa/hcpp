@@ -220,7 +220,7 @@ static short    type_iso2022_jp[ UCHARMAX + 1] = {
    DGJP,  DGJP,  PIJP,  PIJP,  PIJP,  PIJP,  PIJP,  PIJP,   /* 38 89:;<=>?  */
 
    IJP,   LIJP,  LJPS3, LIJP,  LJPS4, LIJP,  LIJP,  LIJP,   /* 40 @ABCDEFG  */
-   LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,   /* 48 HIJKLMNO  */
+   LIJP,  LJPS3,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,   /* 48 HIJKLMNO  */
    LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,   /* 50 PQRSTUVW  */
    LIJP,  LIJP,  LIJP,  PIJP,  IJP,   PIJP,  PIJP,  LIJP,   /* 58 XYZ[\]^_  */
    IJP,   LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,  LIJP,   /* 60 `abcdefg  */
@@ -659,6 +659,7 @@ static size_t   mb_read_iso2022_jp(
     char *  in_p = *in_pp;
     char *  out_p = *out_pp;
     int     c2, c3, c4;
+    int     hankaku_kana = 0;
 
     if (! (char_type[ c1 & UCHARMAX] & mbstart))
         return  MB_ERROR;
@@ -696,6 +697,9 @@ static size_t   mb_read_iso2022_jp(
             case 0x42   :   /* 0x1b 0x28 0x42:  ASCII   */
                 c1 = *out_p++ = *in_p++ & UCHARMAX;
                 continue;
+	    case 0x49   :   /* 0x1b 0x28 0x49:  hankaku kana   */
+	        hankaku_kana = 1;
+                break;
             default :
                 error = TRUE;
             }
@@ -704,13 +708,20 @@ static size_t   mb_read_iso2022_jp(
         if (error)
             break;
 
-        while (char_type[ c1 = *out_p++ = (*in_p++ & UCHARMAX)] & IJP) {
+	if (hankaku_kana) {
+	  while (char_type[c1 = *out_p++ = (*in_p++ & UCHARMAX)] & IJP) {
+	    ++len;
+	  }
+	}
+	else {
+	  while (char_type[ c1 = *out_p++ = (*in_p++ & UCHARMAX)] & IJP) {
             if (! (char_type[ *out_p++ = (*in_p++ & UCHARMAX)] & IJP)) {
-                error = TRUE;
-                break;
+	      error = TRUE;
+	      break;
             }
             len++;          /* String of multi-byte characters  */
-        }
+	  }
+	}
         if (error)
             break;
 
